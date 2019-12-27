@@ -61,7 +61,7 @@ public class RRDGRAPH extends NamedWarpScriptFunction implements WarpScriptStack
     DayOfWeek.put("SUNDAY", RrdGraphConstants.SUNDAY);
   }
   
-  private static final String DEFAULT_SIGNATURE = "WarpScript RRD4J Extension";
+  private static final String DEFAULT_SIGNATURE = "WarpScript RRD Extension";
   
   public RRDGRAPH(String name) {
     super(name);
