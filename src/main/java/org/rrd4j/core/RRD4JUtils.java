@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -26,10 +26,10 @@ public class RRD4JUtils {
     return archive.fetchData(request);
   }
   public static void setBuffer(ByteBufferBackend backend, byte[] data) {
-    ByteBuffer buffer = ByteBuffer.wrap(data);  
+    ByteBuffer buffer = ByteBuffer.wrap(data);
     backend.setByteBuffer(buffer);
   }
-  
+
   public static byte[] getBytes(RrdDb db) throws IOException {
     try {
       return db.getBytes();
@@ -48,7 +48,7 @@ public class RRD4JUtils {
           // Retrieve the last byte
           cb = ((ByteBufferBackend) db.getRrdBackend()).getCharBuffer(len - 2, 2);
           bytes[len - 1] = (byte) (cb.charAt(0) & 0xFF);
-          return bytes;          
+          return bytes;
         } else {
           CharBuffer cb = ((ByteBufferBackend) db.getRrdBackend()).getCharBuffer(0L, len / 2);
           byte[] bytes = new byte[len];
@@ -57,15 +57,15 @@ public class RRD4JUtils {
             bytes[2 * i] = (byte) (((int) c >> 8) & 0xFF);
             bytes[2 * i + 1] = (byte) (c & 0xFF);
           }
-          return bytes;          
+          return bytes;
         }
       } else {
         throw new IOException(bue);
       }
     }
   }
-  
+
   public static RrdMemoryBackend getMemoryBackend(String path) {
-    return new RrdMemoryBackend(path);
+    return new RrdMemoryBackend(path, null);
   }
 }
