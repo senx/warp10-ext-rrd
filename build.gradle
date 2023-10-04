@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -84,6 +84,8 @@ wrapper {
 repositories {
   jcenter()
   
+  mavenLocal();
+
   maven {
     url 'https://dl.bintray.com/senx/maven'
   }
@@ -110,7 +112,7 @@ dependencies {
   //
   //compile group: 'GROUP', name: 'NAME', version: 'VERSION'
   // https://mvnrepository.com/artifact/org.rrd4j/rrd4j
-  compile group: 'org.rrd4j', name: 'rrd4j', version: '3.5'
+  compile group: 'org.rrd4j', name: 'rrd4j', version: '3.9'
 
   testCompile'io.warp10:warpscript:+'
   testImplementation 'junit:junit:4.12'
