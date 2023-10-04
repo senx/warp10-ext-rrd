@@ -1,5 +1,5 @@
 //
-//   Copyright 2019  SenX S.A.S.
+//   Copyright 2019-2023  SenX S.A.S.
 //
 //   Licensed under the Apache License, Version 2.0 (the "License");
 //   you may not use this file except in compliance with the License.
@@ -35,51 +35,51 @@ public class TORRD extends NamedWarpScriptFunction implements WarpScriptStackFun
   public TORRD(String name) {
     super(name);
   }
-  
+
   @Override
   public Object apply(WarpScriptStack stack) throws WarpScriptException {
-    
+
     Object top = stack.pop();
-    
+
     if (!(top instanceof byte[])) {
       throw new WarpScriptException(getName() + " operates on a byte array.");
     }
-    
+
     byte[] data = (byte[]) top;
-    
+
     try {
       final ByteBufferBackend backend = RRD4JUtils.getMemoryBackend("");
       RRD4JUtils.setBuffer(backend, data);
-      
+
       //
       // We need to trick RRD4J by using a custom backend factory
       // which will return a single custom backend
       //
       RrdBackendFactory factory = new RrdMemoryBackendFactory() {
-        
+
         @Override
-        protected RrdBackend open(String path, boolean readOnly) throws IOException {
+        protected RrdBackend open(String path, boolean readOnly) {
           return backend;
         }
-        
+
         @Override
         protected boolean exists(String path) {
           return true;
         }
-        
+
         @Override
         public String getName() {
           return "MEMORY";
         }
       };
-      
+
       RrdDb db = RrdDb.getBuilder().setUsePool(false).setPath("").setBackendFactory(factory).build();
       RRD4JUtils.setBuffer((RrdMemoryBackend) db.getRrdBackend(), data);
-      stack.push(db);      
+      stack.push(db);
     } catch (IOException ioe) {
       throw new WarpScriptException(getName() + " encountered an error while creating RRD DB.");
     }
-    
+
     return stack;
   }
 
