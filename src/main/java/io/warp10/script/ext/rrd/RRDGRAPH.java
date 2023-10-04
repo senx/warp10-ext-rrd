@@ -18,7 +18,10 @@ package io.warp10.script.ext.rrd;
 
 import java.awt.Color;
 import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.Image;
 import java.awt.Paint;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -28,6 +31,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import javax.swing.ImageIcon;
 
 import org.apache.commons.codec.binary.Base64;
 import org.rrd4j.ConsolFun;
@@ -40,6 +45,7 @@ import org.rrd4j.graph.RrdGraph;
 import org.rrd4j.graph.RrdGraphConstants;
 import org.rrd4j.graph.RrdGraphConstants.FontTag;
 import org.rrd4j.graph.RrdGraphDef;
+import org.rrd4j.graph.RrdGraphDef.ImageSource;
 
 import io.warp10.script.NamedWarpScriptFunction;
 import io.warp10.script.WarpScriptException;
@@ -90,6 +96,8 @@ public class RRDGRAPH extends NamedWarpScriptFunction implements WarpScriptStack
     return stack;
   }
   
+  private static final String[] imgKeys = new String[] { "background", "canvas", "overlay" };
+  
   private RrdGraphDef params2def(Map params) throws WarpScriptException {
     RrdGraphDef def = new RrdGraphDef();
     // Instruct RrdGraph to generate the image in memory
@@ -97,6 +105,46 @@ public class RRDGRAPH extends NamedWarpScriptFunction implements WarpScriptStack
     // Do not use pool
     def.setPoolUsed(false);
 
+    for (String key: imgKeys)
+    if (null != params.get(key)) {
+      Object img = params.get(key);
+      byte[] bytes = null;
+      
+      if ((img instanceof String) && ((String) img).startsWith("data:image/")) {
+        bytes = Base64.decodeBase64(((String) img).substring(((String) img).indexOf(",") + 1));
+      } else if (img instanceof byte[]) {
+        bytes = (byte[]) img;
+      } else {
+        throw new WarpScriptException(getName() + " expects '" + key + "' to be a base64 data URI or a byte array.");
+      }
+      
+      Image awtImage = new ImageIcon(bytes).getImage();
+      // Create a buffered image with transparency
+      final BufferedImage bimage = awtImage instanceof BufferedImage ? (BufferedImage) awtImage : new BufferedImage(awtImage.getWidth(null), awtImage.getHeight(null), BufferedImage.TYPE_INT_ARGB);
+
+      if (!(awtImage instanceof BufferedImage)) {
+        // Draw the image on to the buffered image
+        Graphics2D bGr = bimage.createGraphics();
+        bGr.drawImage(awtImage, 0, 0, null);
+        bGr.dispose();        
+      }
+
+      ImageSource imgsrc = new RrdGraphDef.ImageSource() {
+        @Override
+        public BufferedImage apply(int w, int h) throws IOException {
+          return bimage;
+        }
+      };
+      
+      if ("background".equals(key)) {
+        def.setBackgroundImage(imgsrc);        
+      } else if ("canvas".equals(key)) {
+        def.setCanvasImage(imgsrc);
+      } else if ("overlay".equals(key)) {
+        def.setOverlayImage(imgsrc);
+      }
+    }
+    
     def.setAltAutoscale(Boolean.TRUE.equals(params.getOrDefault("alt-autoscale", false)));
     def.setAltAutoscaleMax(Boolean.TRUE.equals(params.getOrDefault("alt-autoscale-max", false)));
     def.setAltAutoscaleMin(Boolean.TRUE.equals(params.getOrDefault("alt-autoscale-min", false)));
@@ -209,7 +257,26 @@ public class RRDGRAPH extends NamedWarpScriptFunction implements WarpScriptStack
         throw new WarpScriptException("Invalid time axis specification, expected a list with 8 elements.");
       }
       
-      //def.setTimeAxis(minorUnit, minorUnitCount, majorUnit, majorUnitCount, labelUnit, labelUnitCount, labelSpan, simpleDateFormat);
+      for (int i = 0; i < 7; i++) {
+        if (!(tspec.get(i) instanceof Long)) {
+          throw new WarpScriptException("Invalid time axis specification, expected [ minorUnit minorUnitCount majorUnit majorUnitCount labelUnit labelUnitCount labelSpan simpleDateFormat ], 7 LONGs and 1 STRING.");
+        }
+      }
+      
+      if (!(tspec.get(7) instanceof String)) {
+        throw new WarpScriptException("Invalid time axis specification, expected [ minorUnit minorUnitCount majorUnit majorUnitCount labelUnit labelUnitCount labelSpan simpleDateFormat ], 7 LONGs and 1 STRING.");        
+      }
+      
+      def.setTimeAxis(
+        ((Number) tspec.get(0)).intValue(),
+        ((Number) tspec.get(1)).intValue(),
+        ((Number) tspec.get(2)).intValue(),
+        ((Number) tspec.get(3)).intValue(),
+        ((Number) tspec.get(4)).intValue(),
+        ((Number) tspec.get(5)).intValue(),
+        ((Number) tspec.get(6)).intValue(),
+        tspec.get(7).toString()
+      );
     }
     
     if (params.containsKey("comment")) {
